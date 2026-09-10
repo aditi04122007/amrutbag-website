@@ -1,0 +1,19 @@
+{
+  "name": "shopsphere-ecommerce",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "start:backend": "node backend/server.js",
+    "seed:backend": "node backend/database/seed.js",
+    "test:backend": "node backend/test_api.js",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build"
+  },
+  "dependencies": {
+    "cloudinary": "^1.41.3",
+    "multer": "^2.2.0",
+    "multer-storage-cloudinary": "^4.0.0",
+    "mysql2": "^3.22.5"
+  }
+}
