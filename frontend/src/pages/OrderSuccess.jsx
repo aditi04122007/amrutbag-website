@@ -48,6 +48,20 @@ export default function OrderSuccess() {
               <span className="font-semibold text-gray-800">3 - 5 Business Days</span>
             </div>
 
+            {stateData.shipping?.paymentMethod && (
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Payment Mode:</span>
+                <span className="font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md text-xs inline-flex items-center gap-1">
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  {stateData.shipping.paymentMethod === "upi"
+                    ? `UPI (${stateData.shipping.upiId || stateData.shipping.upiApp || "Instant UPI"})`
+                    : stateData.shipping.paymentMethod === "card"
+                    ? "Credit / Debit Card"
+                    : "Cash on Delivery (COD)"}
+                </span>
+              </div>
+            )}
+
             {stateData.shipping?.address && (
               <div className="flex justify-between items-start pt-2 border-t border-gray-200 text-xs">
                 <span className="text-gray-500">Delivery To:</span>

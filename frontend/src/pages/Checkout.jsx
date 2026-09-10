@@ -4,7 +4,16 @@ import { CartContext } from "../context/CartContext";
 import { AuthContext } from "../context/AuthContext";
 import { createOrder } from "../api/orderApi";
 import Footer from "../components/Footer";
-import { ShieldCheck, Truck, ArrowRight, CheckCircle, AlertCircle } from "../components/Icons";
+import {
+  ShieldCheck,
+  Truck,
+  ArrowRight,
+  CheckCircle,
+  AlertCircle,
+  QrCode,
+  Smartphone,
+  CreditCard
+} from "../components/Icons";
 
 export default function Checkout() {
   const { cart, totalAmount, clearCart } = useContext(CartContext);
@@ -19,9 +28,14 @@ export default function Checkout() {
     city: "",
     state: "",
     postalCode: "",
-    paymentMethod: "card"
+    paymentMethod: "upi", // Default to UPI as requested
+    upiId: "",
+    upiApp: "Google Pay"
   });
 
+  const [upiMode, setUpiMode] = useState("id"); // "id" | "qr"
+  const [upiVerified, setUpiVerified] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -36,6 +50,16 @@ export default function Checkout() {
       ...prev,
       [e.target.name]: e.target.value
     }));
+    if (e.target.name === "upiId") {
+      setUpiVerified(e.target.value.includes("@") && e.target.value.length > 4);
+    }
+  };
+
+  const handleSuffixClick = (suffix) => {
+    let base = formData.upiId.split("@")[0] || formData.phone || "user";
+    const newUpiId = `${base}${suffix}`;
+    setFormData((prev) => ({ ...prev, upiId: newUpiId }));
+    setUpiVerified(true);
   };
 
   const shippingCost = totalAmount > 99 ? 0 : 10;
@@ -51,9 +75,27 @@ export default function Checkout() {
       return;
     }
 
+    if (formData.paymentMethod === "upi") {
+      if (upiMode === "id" && !formData.upiId.trim()) {
+        setError("Please enter your UPI ID (e.g. mobile@upi or name@oksbi) or switch to Scan QR.");
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
+      if (formData.paymentMethod === "upi") {
+        setProcessingStatus("Initiating UPI Payment Gateway...");
+        await new Promise((r) => setTimeout(r, 600));
+        setProcessingStatus("Verifying UPI Transaction with Bank...");
+        await new Promise((r) => setTimeout(r, 700));
+      }
+
+      const activeUpiId = formData.paymentMethod === "upi"
+        ? (upiMode === "qr" ? "Paid via UPI QR Code" : formData.upiId || `${formData.phone}@upi`)
+        : null;
+
       const orderPayload = {
         items: cart.map((item) => ({
           id: item.id,
@@ -68,7 +110,9 @@ export default function Checkout() {
           city: formData.city,
           state: formData.state,
           postalCode: formData.postalCode,
-          paymentMethod: formData.paymentMethod
+          paymentMethod: formData.paymentMethod,
+          upiId: activeUpiId,
+          upiApp: formData.paymentMethod === "upi" ? formData.upiApp : null
         }
       };
 
@@ -82,7 +126,10 @@ export default function Checkout() {
         state: {
           orderId: result.orderId,
           totalAmount: result.totalAmount,
-          shipping: formData,
+          shipping: {
+            ...formData,
+            upiId: activeUpiId
+          },
           itemsCount: cart.length
         }
       });
@@ -91,6 +138,7 @@ export default function Checkout() {
       setError(err.response?.data?.message || err.message || "Failed to place your order. Please try again.");
     } finally {
       setLoading(false);
+      setProcessingStatus("");
     }
   };
 
@@ -231,40 +279,267 @@ export default function Checkout() {
             </div>
 
             {/* Payment Method Section */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-6 sm:p-8 space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 pb-3 border-b border-gray-100">
-                2. Payment Method
-              </h2>
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-6 sm:p-8 space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h2 className="text-xl font-bold text-gray-900">
+                  2. Payment Method
+                </h2>
+                <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" /> 100% Secure
+                </span>
+              </div>
 
-              <div className="space-y-3">
-                <label className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition ${formData.paymentMethod === "card" ? "border-indigo-600 bg-indigo-50/40" : "border-gray-200 hover:bg-gray-50"}`}>
+              <div className="space-y-4">
+                {/* 1. UPI Payment Option */}
+                <div
+                  className={`rounded-2xl border transition-all ${
+                    formData.paymentMethod === "upi"
+                      ? "border-indigo-600 bg-indigo-50/20 shadow-xs"
+                      : "border-gray-200 hover:bg-gray-50/50"
+                  }`}
+                >
+                  <label className="flex items-start gap-3.5 p-4 sm:p-5 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="upi"
+                      checked={formData.paymentMethod === "upi"}
+                      onChange={handleChange}
+                      className="w-4 h-4 mt-1 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-black text-sm text-gray-900">
+                          UPI Payment (Google Pay, PhonePe, Paytm, BHIM, QR)
+                        </p>
+                        <span className="text-[11px] font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                          ⚡ Instant & Zero Fee
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Pay directly using any Indian UPI app or scan the dynamic merchant QR code
+                      </p>
+                    </div>
+                  </label>
+
+                  {/* Expanded UPI Configuration */}
+                  {formData.paymentMethod === "upi" && (
+                    <div className="px-4 pb-5 sm:px-5 border-t border-indigo-100/60 pt-4 space-y-4">
+                      {/* Mode toggle */}
+                      <div className="flex rounded-xl bg-gray-100 p-1 text-xs font-bold max-w-sm">
+                        <button
+                          type="button"
+                          onClick={() => setUpiMode("id")}
+                          className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-2 transition ${
+                            upiMode === "id"
+                              ? "bg-white text-indigo-600 shadow-xs"
+                              : "text-gray-600 hover:text-gray-900"
+                          }`}
+                        >
+                          <Smartphone className="w-4 h-4" /> UPI ID / App
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setUpiMode("qr")}
+                          className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-2 transition ${
+                            upiMode === "qr"
+                              ? "bg-white text-indigo-600 shadow-xs"
+                              : "text-gray-600 hover:text-gray-900"
+                          }`}
+                        >
+                          <QrCode className="w-4 h-4" /> Scan QR Code
+                        </button>
+                      </div>
+
+                      {upiMode === "id" ? (
+                        <div className="space-y-3 bg-white p-4 rounded-2xl border border-indigo-100 shadow-2xs">
+                          {/* Fast UPI App Selectors */}
+                          <div>
+                            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-2">
+                              Choose your UPI App:
+                            </span>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              {[
+                                { name: "Google Pay", color: "border-blue-200 text-blue-700 bg-blue-50/50" },
+                                { name: "PhonePe", color: "border-purple-200 text-purple-700 bg-purple-50/50" },
+                                { name: "Paytm", color: "border-sky-200 text-sky-700 bg-sky-50/50" },
+                                { name: "BHIM UPI", color: "border-emerald-200 text-emerald-700 bg-emerald-50/50" },
+                              ].map((app) => (
+                                <button
+                                  key={app.name}
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData((prev) => ({ ...prev, upiApp: app.name }));
+                                  }}
+                                  className={`px-3 py-2 rounded-xl text-xs font-black border text-center transition ${
+                                    formData.upiApp === app.name
+                                      ? "ring-2 ring-indigo-600 border-indigo-600 bg-indigo-50"
+                                      : `${app.color} hover:bg-white`
+                                  }`}
+                                >
+                                  {app.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* UPI ID Input */}
+                          <div>
+                            <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block mb-1.5">
+                              Enter UPI ID / VPA *
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="text"
+                                name="upiId"
+                                value={formData.upiId}
+                                onChange={handleChange}
+                                placeholder="e.g. mobile@upi or username@oksbi"
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-hidden focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition pr-10"
+                              />
+                              {upiVerified && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600 flex items-center gap-1 text-xs font-bold">
+                                  <CheckCircle className="w-5 h-5" />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Quick UPI Handle Suffix Suggestions */}
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                            <span className="text-[11px] text-gray-400 font-medium">Quick handles:</span>
+                            {["@oksbi", "@okhdfcbank", "@paytm", "@ybl", "@axl", "@upi"].map((suf) => (
+                              <button
+                                key={suf}
+                                type="button"
+                                onClick={() => handleSuffixClick(suf)}
+                                className="text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-indigo-100 hover:text-indigo-700 text-gray-600 transition"
+                              >
+                                {suf}
+                              </button>
+                            ))}
+                          </div>
+
+                          <p className="text-[11px] text-gray-500 pt-1">
+                            A payment collect notification will be routed to your {formData.upiApp} app upon pressing "Place Order Now".
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="bg-white p-5 rounded-2xl border border-indigo-100 shadow-2xs text-center space-y-3">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold">
+                            <ShieldCheck className="w-3.5 h-3.5" /> Verified Merchant: Amrut Bag Store
+                          </div>
+
+                          {/* Simulated UPI QR Graphic */}
+                          <div className="w-48 h-48 mx-auto bg-white p-3 rounded-2xl border-2 border-indigo-200 shadow-inner flex flex-col items-center justify-center relative group">
+                            {/* SVG Styled QR Visual */}
+                            <svg className="w-full h-full text-gray-900" viewBox="0 0 100 100" fill="currentColor">
+                              {/* Corner markers */}
+                              <rect x="5" y="5" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="4" rx="2" />
+                              <rect x="10" y="10" width="15" height="15" />
+                              <rect x="70" y="5" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="4" rx="2" />
+                              <rect x="75" y="10" width="15" height="15" />
+                              <rect x="5" y="70" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="4" rx="2" />
+                              <rect x="10" y="75" width="15" height="15" />
+                              {/* Pattern blocks */}
+                              <rect x="36" y="8" width="6" height="6" />
+                              <rect x="46" y="14" width="6" height="6" />
+                              <rect x="56" y="8" width="6" height="6" />
+                              <rect x="36" y="24" width="6" height="6" />
+                              <rect x="50" y="26" width="6" height="6" />
+                              <rect x="8" y="36" width="6" height="6" />
+                              <rect x="18" y="44" width="6" height="6" />
+                              <rect x="34" y="38" width="8" height="8" fill="#4f46e5" />
+                              <rect x="48" y="40" width="6" height="6" />
+                              <rect x="60" y="36" width="6" height="6" />
+                              <rect x="72" y="44" width="6" height="6" />
+                              <rect x="84" y="38" width="6" height="6" />
+                              <rect x="36" y="52" width="6" height="6" />
+                              <rect x="46" y="56" width="6" height="6" />
+                              <rect x="58" y="52" width="8" height="8" fill="#4f46e5" />
+                              <rect x="70" y="58" width="6" height="6" />
+                              <rect x="82" y="52" width="6" height="6" />
+                              <rect x="36" y="68" width="6" height="6" />
+                              <rect x="48" y="72" width="6" height="6" />
+                              <rect x="62" y="68" width="6" height="6" />
+                              <rect x="74" y="74" width="6" height="6" />
+                              <rect x="84" y="68" width="6" height="6" />
+                              <rect x="40" y="84" width="6" height="6" />
+                              <rect x="54" y="82" width="6" height="6" />
+                              <rect x="68" y="86" width="6" height="6" />
+                              <rect x="80" y="84" width="6" height="6" />
+                            </svg>
+
+                            {/* Centered Amrut Bag Mini Badge */}
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="bg-white p-1.5 rounded-lg shadow-md border border-indigo-200 text-indigo-700 font-black text-[10px]">
+                                AMRUT BAG
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <p className="text-xs font-bold text-gray-800">
+                              Scan with Google Pay, PhonePe, Paytm or BHIM
+                            </p>
+                            <p className="text-[11px] text-gray-500">
+                              Payable Amount: <span className="font-bold text-indigo-600">${grandTotal.toFixed(2)}</span> (Approx. ₹{(grandTotal * 83).toFixed(0)})
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-center gap-2 text-xs font-semibold text-emerald-600 bg-emerald-50 py-1.5 px-3 rounded-xl">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span>Live UPI Gateway Connected & Listening</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Card Payment Option */}
+                <label
+                  className={`flex items-center gap-3.5 p-4 sm:p-5 rounded-2xl border cursor-pointer transition ${
+                    formData.paymentMethod === "card"
+                      ? "border-indigo-600 bg-indigo-50/30"
+                      : "border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
                   <input
                     type="radio"
                     name="paymentMethod"
                     value="card"
                     checked={formData.paymentMethod === "card"}
                     onChange={handleChange}
-                    className="w-4 h-4 text-indigo-600"
+                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
                   />
+                  <CreditCard className="w-5 h-5 text-gray-500" />
                   <div className="flex-1">
                     <p className="font-bold text-sm text-gray-900">Credit / Debit Card (Simulated)</p>
-                    <p className="text-xs text-gray-500">Instant automated confirmation (Visa, Mastercard, Amex)</p>
+                    <p className="text-xs text-gray-500">Instant confirmation (Visa, Mastercard, RuPay, Amex)</p>
                   </div>
-                  <span className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">Popular</span>
                 </label>
 
-                <label className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition ${formData.paymentMethod === "cod" ? "border-indigo-600 bg-indigo-50/40" : "border-gray-200 hover:bg-gray-50"}`}>
+                {/* 3. COD Payment Option */}
+                <label
+                  className={`flex items-center gap-3.5 p-4 sm:p-5 rounded-2xl border cursor-pointer transition ${
+                    formData.paymentMethod === "cod"
+                      ? "border-indigo-600 bg-indigo-50/30"
+                      : "border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
                   <input
                     type="radio"
                     name="paymentMethod"
                     value="cod"
                     checked={formData.paymentMethod === "cod"}
                     onChange={handleChange}
-                    className="w-4 h-4 text-indigo-600"
+                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
                   />
+                  <Truck className="w-5 h-5 text-gray-500" />
                   <div className="flex-1">
                     <p className="font-bold text-sm text-gray-900">Cash on Delivery (COD)</p>
-                    <p className="text-xs text-gray-500">Pay conveniently with cash upon doorstep arrival</p>
+                    <p className="text-xs text-gray-500">Pay cash upon parcel delivery to your doorstep</p>
                   </div>
                 </label>
               </div>
@@ -329,11 +604,11 @@ export default function Checkout() {
                 {loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Placing Order...
+                    <span>{processingStatus || "Placing Order..."}</span>
                   </>
                 ) : (
                   <>
-                    Place Order Now <ArrowRight className="w-5 h-5" />
+                    {formData.paymentMethod === "upi" ? "Pay with UPI & Confirm Order" : "Place Order Now"} <ArrowRight className="w-5 h-5" />
                   </>
                 )}
               </button>

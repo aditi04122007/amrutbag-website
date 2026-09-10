@@ -290,14 +290,27 @@ export const getAdminStats = async (req, res) => {
       "SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE status != 'Cancelled'"
     );
 
-    // Recent 5 orders
+    // Recent orders with customer contact and address details
     const [recentOrders] = await pool.query(`
-      SELECT o.id, o.total_amount, o.status, o.created_at, u.name as customer_name
+      SELECT o.id, o.total_amount, o.status, o.created_at, o.shipping_address,
+             u.name as customer_name, u.email as customer_email,
+             COUNT(oi.id) as item_count
       FROM orders o
       JOIN users u ON o.user_id = u.id
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      GROUP BY o.id
       ORDER BY o.created_at DESC
-      LIMIT 5
+      LIMIT 10
     `);
+
+    // Parse shipping address details for each order
+    for (const order of recentOrders) {
+      try {
+        order.shipping_details = JSON.parse(order.shipping_address);
+      } catch {
+        order.shipping_details = { address: order.shipping_address };
+      }
+    }
 
     // Status breakdown
     const [statusDistribution] = await pool.query(`

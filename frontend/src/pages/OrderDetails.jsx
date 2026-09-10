@@ -222,8 +222,20 @@ export default function OrderDetails() {
                 {order.shipping_details.paymentMethod && (
                   <div>
                     <span className="text-xs text-gray-400 block font-semibold uppercase">Payment Mode</span>
-                    <span className="font-medium text-gray-800 capitalize">
-                      {order.shipping_details.paymentMethod === "card" ? "Credit / Debit Card (Online)" : "Cash on Delivery"}
+                    <span className="font-semibold text-gray-900 text-xs inline-flex items-center gap-1.5 mt-0.5">
+                      {order.shipping_details.paymentMethod === "upi" ? (
+                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md">
+                          ⚡ UPI Payment ({order.shipping_details.upiId || order.shipping_details.upiApp || "Instant UPI"})
+                        </span>
+                      ) : order.shipping_details.paymentMethod === "card" ? (
+                        <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-md">
+                          💳 Credit / Debit Card (Online)
+                        </span>
+                      ) : (
+                        <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-md">
+                          📦 Cash on Delivery (COD)
+                        </span>
+                      )}
                     </span>
                   </div>
                 )}

@@ -250,6 +250,26 @@ export default function AdminOrders() {
                         {order.shipping_details?.state && `${order.shipping_details.state} `}
                         {order.shipping_details?.postalCode}
                       </p>
+
+                      {/* Payment Method Badge */}
+                      <div className="pt-2 border-t border-gray-200/60">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                          Payment Mode:
+                        </span>
+                        {order.shipping_details?.paymentMethod === "upi" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold text-[11px] border border-emerald-200">
+                            ⚡ UPI: {order.shipping_details.upiId || order.shipping_details.upiApp || "Instant"}
+                          </span>
+                        ) : order.shipping_details?.paymentMethod === "card" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-800 font-bold text-[11px] border border-indigo-200">
+                            💳 Credit / Debit Card
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 font-bold text-[11px] border border-amber-200">
+                            📦 Cash on Delivery (COD)
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Items List */}
