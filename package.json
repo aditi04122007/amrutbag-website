@@ -1,8 +1,10 @@
 {
-  "name": "shopsphere-ecommerce",
+  "name": "amrutbag-ecommerce",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
+    "build": "node build-vercel.js",
     "dev:backend": "npm --prefix backend run dev",
     "start:backend": "node backend/server.js",
     "seed:backend": "node backend/database/seed.js",

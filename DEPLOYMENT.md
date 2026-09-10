@@ -59,10 +59,12 @@ The backend includes an automatic **smart fallback storage engine** (`backend/co
    ```
 4. Configure Project settings:
    - **Framework Preset**: `Vite`
-   - **Root Directory**: Click *Edit* and select `frontend` *(Important!)*
-   - **Build Command**: `npm run build` *(automatic)*
-   - **Output Directory**: `dist` *(automatic)*
-   - **Install Command**: `npm install` *(automatic)*
+   - **Root Directory**:
+     - *Option A (Default)*: Leave as root `./` (Our universal `build-vercel.js` script handles everything automatically!)
+     - *Option B*: Or click *Edit* and select `frontend`
+   - **Build Command**: Leave as default / automatic
+   - **Output Directory**: Leave as default / automatic
+   - **Install Command**: Leave as default / automatic
 
 5. Under **Environment Variables**, add:
    | Key | Value |
