@@ -70,6 +70,12 @@ The backend includes an automatic **smart fallback storage engine** (`backend/co
    | Key | Value |
    |---|---|
    | `VITE_API_URL` | `https://amrutbag-backend.onrender.com/api` |
+   
+   > ⚠️ **Important Format Rules for `VITE_API_URL`**:
+   > - ✅ **Correct**: `https://amrutbag-backend.onrender.com/api`
+   > - ❌ **Do NOT include quotes**: e.g., `"https://..."` or `'https://...'`
+   > - ❌ **Do NOT include angle brackets**: e.g., `<https://...>` or `<your-url>`
+   > - Ensure it starts with `https://` and ends with `/api`.
    *(Replace with your actual Render backend URL from Part 1, followed by `/api`)*
 
 6. Click **Deploy**.

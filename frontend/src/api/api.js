@@ -1,7 +1,68 @@
 import axios from "axios";
 
+/**
+ * Resolves and sanitizes the API base URL.
+ * Handles:
+ * - Accidental quotes, angle brackets (<...>), spaces, or 'undefined'/'null'
+ * - Missing http/https protocol
+ * - Missing /api suffix
+ * - Browser URL constructor safety
+ */
+const resolveBaseUrl = () => {
+  try {
+    const raw = import.meta.env.VITE_API_URL;
+    let url = typeof raw === "string" ? raw.trim() : "";
+
+    // Strip surrounding quotes and angle brackets
+    url = url.replace(/^["'“”‘’<]+|["'“”‘’>]+$/g, "").trim();
+
+    // Check if empty, invalid placeholder, or literal "undefined" / "null"
+    if (
+      !url ||
+      url === "undefined" ||
+      url === "null" ||
+      url.includes("<") ||
+      url.includes(">")
+    ) {
+      if (
+        typeof window !== "undefined" &&
+        window.location.hostname !== "localhost" &&
+        window.location.hostname !== "127.0.0.1"
+      ) {
+        return "/api";
+      }
+      return "http://localhost:5000/api";
+    }
+
+    // Prepend protocol if omitted
+    if (!url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("/")) {
+      url = url.startsWith("localhost") ? `http://${url}` : `https://${url}`;
+    }
+
+    // Strip trailing slashes
+    url = url.replace(/\/+$/, "");
+
+    // Ensure /api suffix exists
+    if (!url.endsWith("/api") && !url.includes("/api/")) {
+      url = `${url}/api`;
+    }
+
+    // Validate using URL constructor safely inside try/catch
+    if (!url.startsWith("/")) {
+      new URL(url);
+    }
+
+    return url;
+  } catch (err) {
+    console.warn("[AmrutBag] Invalid VITE_API_URL detected, using fallback:", err);
+    return typeof window !== "undefined" && window.location.hostname !== "localhost"
+      ? "/api"
+      : "http://localhost:5000/api";
+  }
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL: resolveBaseUrl(),
   headers: {
     "Content-Type": "application/json",
   },
