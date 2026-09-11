@@ -16,6 +16,11 @@ const resolveBaseUrl = () => {
     // Strip surrounding quotes and angle brackets
     url = url.replace(/^["'“”‘’<]+|["'“”‘’>]+$/g, "").trim();
 
+    // Auto-correct old documentation URL to active live Render service
+    if (url.includes("amrutbag-backend.onrender.com")) {
+      url = url.replace("amrutbag-backend.onrender.com", "amrutbag-website.onrender.com");
+    }
+
     // Check if empty, invalid placeholder, or literal "undefined" / "null"
     if (
       !url ||
@@ -29,7 +34,8 @@ const resolveBaseUrl = () => {
         window.location.hostname !== "localhost" &&
         window.location.hostname !== "127.0.0.1"
       ) {
-        return "/api";
+        // Fallback to active live Render backend
+        return "https://amrutbag-website.onrender.com/api";
       }
       return "http://localhost:5000/api";
     }
@@ -56,7 +62,7 @@ const resolveBaseUrl = () => {
   } catch (err) {
     console.warn("[AmrutBag] Invalid VITE_API_URL detected, using fallback:", err);
     return typeof window !== "undefined" && window.location.hostname !== "localhost"
-      ? "/api"
+      ? "https://amrutbag-website.onrender.com/api"
       : "http://localhost:5000/api";
   }
 };
@@ -67,6 +73,11 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+// Automatic background wake-up ping for free hosting (Render) cold starts
+if (typeof window !== "undefined") {
+  api.get("/health").catch(() => {});
+}
 
 // Interceptor to attach Authorization header automatically
 api.interceptors.request.use(

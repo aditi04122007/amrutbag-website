@@ -29,9 +29,15 @@ export default function Login() {
         navigate(redirectPath);
       }
     } catch (err) {
-      setError(
-        err.response?.data?.message || err.message || "Invalid credentials. Please verify."
-      );
+      if (err.message === "Network Error" || !err.response) {
+        setError(
+          "Network Error: Unable to connect to the backend. If using Render free hosting, it may be waking up (takes ~30 seconds on cold start). Please wait a moment and try again."
+        );
+      } else {
+        setError(
+          err.response?.data?.message || err.message || "Invalid credentials. Please verify."
+        );
+      }
     } finally {
       setLoading(false);
     }

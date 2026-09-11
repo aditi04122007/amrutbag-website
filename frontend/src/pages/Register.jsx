@@ -50,9 +50,15 @@ export default function Register() {
 
       navigate("/");
     } catch (err) {
-      setError(
-        err.response?.data?.message || err.message || "Registration failed. Please try again."
-      );
+      if (err.message === "Network Error" || !err.response) {
+        setError(
+          "Network Error: Unable to connect to the backend. If using Render free hosting, it may be waking up (takes ~30 seconds on cold start). Please wait a moment and try again."
+        );
+      } else {
+        setError(
+          err.response?.data?.message || err.message || "Registration failed. Please try again."
+        );
+      }
     } finally {
       setLoading(false);
     }
